@@ -6,8 +6,10 @@ import (
 
 func IsExpression(node ast.Node) bool {
 	switch n := node.(type) {
-	case ast.Constant:
+	case *ast.Constant:
+		t := n.Type()
 		if n.Type() == ast.STRING || n.Type() == ast.INT {
+			print(t)
 			return true
 		}
 		return false
@@ -28,12 +30,13 @@ func IsExpression(node ast.Node) bool {
 func IsStatement(node ast.Node) bool {
 	switch n := node.(type) {
 	case *ast.ExprStatment:
-		return IsExpression(n.Value)
+		a := IsExpression(n.Value)
+		return a
 	}
 	return false
 }
 
-func IsLanguageINT(p ast.Porgram) bool {
+func IsLanguageINT(p *ast.Program) bool {
 	for _, stmt := range p.Body {
 		if !IsStatement(stmt) {
 			return false

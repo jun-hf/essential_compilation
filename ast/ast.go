@@ -52,6 +52,7 @@ func (c Constant) node() {}
 func (c Constant) String() string {
 	return c.Literal
 }
+func (c Constant) expressionNode() {}
 
 type BinaryOperation struct {
 	Left  Expression
@@ -60,7 +61,8 @@ type BinaryOperation struct {
 }
 
 func (b *BinaryOperation) Operator() string {
-	return b.Op.String()
+	a := b.Op.String()
+	return a
 }
 func (b *BinaryOperation) node() {}
 func (b *BinaryOperation) expressionNode() {}
@@ -116,6 +118,6 @@ func Expr(e Expression) *ExprStatment {
 } 
 
 
-type Porgram struct {
+type Program struct {
 	Body []Statement
 }
