@@ -48,46 +48,51 @@ func (c Constant) Type() Type {
 	}
 	return ILLEGAL
 }
-func (c Constant) Node() {}
+func (c Constant) node() {}
 func (c Constant) String() string {
 	return c.Literal
 }
 
 type BinaryOperation struct {
-	left  Expression
-	op    Operator
-	right Expression
+	Left  Expression
+	Op    Operator
+	Right Expression
 }
 
+func (b *BinaryOperation) Operator() string {
+	return b.Op.String()
+}
+func (b *BinaryOperation) node() {}
 func (b *BinaryOperation) expressionNode() {}
 func (b *BinaryOperation) String() string {
 	var s strings.Builder
 
 	s.WriteString("(")
-	if b.left != nil { s.WriteString(b.left.String()) }
+	if b.Left != nil { s.WriteString(b.Left.String()) }
 	s.WriteString(" ")
-	if b.right != nil { s.WriteString(b.op.String()) }
+	s.WriteString(b.Op.String()) 
 	s.WriteString(" ")
-	s.WriteString(b.right.String())
+	if b.Right != nil { s.WriteString(b.Right.String()) }
 	s.WriteString(")")
 
 	return s.String()
 }
 
 type UnaryOperation struct {
-	op  Operator
-	exp Expression
+	Op  Operator
+	Exp Expression
 }
 
+func (b *UnaryOperation) Operator() string { return b.Op.String() }
 func (b *UnaryOperation) expressionNode() {}
-func (b *UnaryOperation) Node() {}
+func (b *UnaryOperation) node() {}
 func (b *UnaryOperation) String() string {
 	var s strings.Builder
 
 	s.WriteString("(")
-	s.WriteString(b.op.String())
-	if b.exp != nil {
-		s.WriteString(b.exp.String())
+	s.WriteString(b.Op.String())
+	if b.Exp != nil {
+		s.WriteString(b.Exp.String())
 	}
 	s.WriteString(")")
 	return s.String()
@@ -97,7 +102,7 @@ type ExprStatment struct {
 	Value Expression
 }
 
-func (e *ExprStatment) Node() {}
+func (e *ExprStatment) node() {}
 func (e *ExprStatment) String() string {
 	if e.Value == nil {
 		return ""
@@ -109,3 +114,8 @@ func (e *ExprStatment) statementNode() {}
 func Expr(e Expression) *ExprStatment {
 	return &ExprStatment{ e }
 } 
+
+
+type Porgram struct {
+	Body []Statement
+}
