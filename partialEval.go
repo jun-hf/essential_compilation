@@ -58,33 +58,25 @@ func partialEvalExpression(exp ast.Expression) (ast.Expression, error) {
 }
 
 func partialEvalUnaryOperation(e *ast.UnaryOperation) (ast.Expression, error) {
-	if e.Op != ast.Operator(ast.STRING) {
+	if e.Op != ast.OP_SUB {
 		return nil, errors.New("unsupportted unary operation")
 	}
-	u := &ast.UnaryOperation{Op: e.Op}
-	var evalConstant *ast.Constant
-	c, ok := e.Exp.(*ast.Constant)
-	if !ok {
-		eval, err := partialEvalExpression(e.Exp)
-		if err != nil {
-			return nil, err
+
+	eval, err := partialEvalExpression(e.Exp)
+	if err != nil {
+		return nil, err
+	}
+
+	if c, ok := eval.(*ast.Constant); ok {
+		val, ok := c.Value.(int)
+		if !ok {
+			return nil, errors.New("constant is not integer")
 		}
-		if evalC, ok := eval.(*ast.Constant); ok {
-			evalConstant = evalC
-		}
-		u.Exp = eval
-	} else {
-		evalConstant = c
+		return &ast.Constant{Value: -val, Literal: strconv.Itoa(-val)}, nil
 	}
-	if evalConstant == nil {
-		return u, nil
-	}
-	val, ok := evalConstant.Value.(int)
-	if !ok {
-		return nil, errors.New("constant is not integer")
-	}
-	return &ast.Constant{Value: -val, Literal: strconv.Itoa(-val)}, nil
-} 
+
+	return &ast.UnaryOperation{Op: e.Op, Exp: eval}, nil
+}
 
 func partialEvalBinaryOperation(b *ast.BinaryOperation) (ast.Expression, error) {
 	binOperation := &ast.BinaryOperation{Op: b.Op}
