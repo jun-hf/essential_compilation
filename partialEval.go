@@ -79,62 +79,56 @@ func partialEvalUnaryOperation(e *ast.UnaryOperation) (ast.Expression, error) {
 }
 
 func partialEvalBinaryOperation(b *ast.BinaryOperation) (ast.Expression, error) {
-	binOperation := &ast.BinaryOperation{Op: b.Op}
-	var leftConstant *ast.Constant
-	var rightConstant *ast.Constant
-	switch l := b.Left.(type) {
-	case *ast.Constant:
-		leftConstant = l
-	default:
-		lexp, err := partialEvalExpression(l)
-		if err != nil {
-			return nil, err
-		}
-		if lc, ok := lexp.(*ast.Constant); ok {
-			leftConstant = lc
-		}
-		binOperation.Left = lexp
+	lEval, err := partialEvalExpression(b.Left)
+	if err != nil {
+		return nil, err
 	}
-	switch r := b.Right.(type) {
-	case *ast.Constant:
-		rightConstant = r
-	default:
-		rexp, err := partialEvalExpression(r)
-		if err != nil {
-			return nil, err
-		}
-		if rc, ok := rexp.(*ast.Constant); ok {
-			rightConstant = rc
-		}
-		binOperation.Right = rexp
+	rEval, err := partialEvalExpression(b.Right)
+	if err != nil {
+		return nil, err
 	}
 
-	if leftConstant != nil && rightConstant != nil {
-		if leftConstant.Type() != rightConstant.Type() {
-			return nil, errors.New("type mismatch")
-		}
-		if leftConstant.Type() == ast.STRING && rightConstant.Type() == ast.STRING {
-			if binOperation.Op.String() != "+" {
-				return nil, errors.New("invalid binary operation")
-			}
-			var s strings.Builder
-			s.WriteString(leftConstant.String())
-			s.WriteString(rightConstant.String())
-			return &ast.Constant{Value: s.String(), Literal: s.String()}, nil
-		}
-		if leftConstant.Type() == ast.INT && rightConstant.Type() == ast.INT {
-			lInt, _ := leftConstant.Value.(int)
-			rInt, _ := rightConstant.Value.(int)
-
-			total := 0
-			switch binOperation.Op.String() {
-			case "+":
-				total = lInt + rInt
-			case "-":
-				total = lInt - rInt
-			}
-			return &ast.Constant{Value: total, Literal: strconv.Itoa(total)}, nil
-		}
+	lConstant, lIsConstant := lEval.(*ast.Constant)
+	rConstant, rIsConstant := rEval.(*ast.Constant)
+	switch {
+	case lIsConstant && rIsConstant:
+		return evalBinaryOperation(b.Op, lConstant, rConstant)
+	case !lIsConstant && rIsConstant:
+		return &ast.BinaryOperation{Left: lEval, Op: b.Op, Right: rConstant}, nil
+	case lIsConstant && !rIsConstant:
+		return &ast.BinaryOperation{Left: lConstant, Op: b.Op, Right: rEval}, nil
 	}
-	return binOperation, nil
+	return &ast.BinaryOperation{Left: lEval, Op: b.Op, Right: rEval}, nil
+}
+
+func evalBinaryOperation(op ast.Operator, left, right *ast.Constant) (*ast.Constant, error) {
+	if left.Type() != right.Type() {
+		return nil, errors.New("type mismatch")
+	}
+
+	switch left.Type() {
+	case ast.STRING:
+		if op.String() != "+" { 
+			return nil, errors.New("invalid binary operation on string type")
+		}
+		var s strings.Builder
+		s.WriteString(left.String())
+		s.WriteString(right.String())
+		return &ast.Constant{Value: s.String(), Literal: s.String()}, nil
+	case ast.INT:
+		lInt, lOk := left.Value.(int)
+		rInt, rOk := right.Value.(int)
+		if !lOk || !rOk {
+			return nil, errors.New("ast.Constant: inconsistent type and Value")
+		}
+		var total int
+		switch op.String() {
+		case "+":
+			total = lInt + rInt
+		case "-":
+			total = lInt - rInt
+		}
+		return &ast.Constant{Value: total, Literal: strconv.Itoa(total)}, nil
+	}
+	return nil, errors.New("unsupported constant type")
 }
